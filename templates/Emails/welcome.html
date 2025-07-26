@@ -1,0 +1,64 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Bijoux Chic</title>
+</head>
+<body style="font-family: 'Georgia', serif; line-height: 1.6; color: #333; background-color: #f8f8f8; margin: 0; padding: 0;">
+    <div class="email-container" style="max-width: 600px; margin: 0 auto; background-color: #b8860b; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div class="header" style="background: linear-gradient(135deg, #d4af37, #f4e4bc); padding: 40px 20px; text-align: center; border-top: 4px solid #b8860b;">
+            <div class="logo" style="font-size: 32px; font-weight: bold; color: #2c1810; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Bijoux Chic</div>
+            <div class="tagline" style="font-size: 16px; color: #5d4e37; font-style: italic;">Elegance Redefined</div>
+        </div>
+        
+        <div class="content" style="padding: 40px 30px;">
+            <h1 class="welcome-message" style="font-size: 24px; color: #2c1810; margin-bottom: 20px; text-align: center;">Welcome to Our Exclusive Collection!</h1>
+            
+            <p class="main-text" style="font-size: 16px; color: #000; margin-bottom: 25px; text-align: center;">
+                Hi {{user}}! Thank you for joining the Bijoux Chic family! We're thrilled to have you discover our carefully curated selection of elegant jewelry and accessories.
+            </p>
+            
+            <div class="image-placeholder" style="width: 100%; height: 250px; background: linear-gradient(45deg, #f0f0f0, #e0e0e0); border: 2px dashed #d4af37; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 30px 0; position: relative; overflow: hidden;">
+                <div class="image-text" style="font-size: 18px; color: #888; z-index: 1; position: relative; text-align: center;">
+                    <img src="http://localhost:8000/static/pagemedia/email-image.jpeg" alt="image" style="max-width: 100%; height: auto;"> <br>
+                </div>
+            </div>
+            
+            <div class="benefits" style="background-color: #d4af37; padding: 25px; border-radius: 8px; margin: 25px 0;">
+                <h3 style="color: #2c1810; margin-bottom: 15px; font-size: 18px;">Your VIP Benefits Include:</h3>
+                <div class="benefit-item" style="margin-bottom: 10px; padding-left: 20px; position: relative;">✨ Exclusive access to new collections</div>
+                <div class="benefit-item" style="margin-bottom: 10px; padding-left: 20px; position: relative;">✨ Member-only discounts and offers</div>
+                <div class="benefit-item" style="margin-bottom: 10px; padding-left: 20px; position: relative;">✨ Personal styling recommendations</div>
+                <div class="benefit-item" style="margin-bottom: 10px; padding-left: 20px; position: relative;">✨ Priority customer support</div>
+            </div>
+            
+            <p class="main-text" style="font-size: 16px; color: #000; margin-bottom: 25px; text-align: center;">
+                Ready to explore our stunning collection? Browse our latest arrivals and discover pieces that reflect your unique style and sophistication.
+            </p>
+            
+            <a href="http://localhost:5173/shop" class="cta-button" style="display: inline-block; background: linear-gradient(135deg, #d4af37, #b8860b); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-size: 16px; font-weight: bold; margin: 20px auto; display: block; text-align: center; max-width: 200px; transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);">Shop Now</a>
+        </div>
+        
+        <div class="footer" style="background-color: #2c1810; color: #d4af37; padding: 30px 20px; text-align: center; font-size: 14px;">
+            <p><strong>Bijoux Chic</strong> - Where Elegance Meets Affordability</p>
+            <p>📍 Sowutuom Pentecost university</p>
+            <p>📍 Agya herbal fountains gate chapel</p>
+            <p>Phone: (233) 20 727 7441 / (233) 20 720 5149  | Email: hello@bijouxchic.com</p>
+            
+            <div class="social-links" style="margin-top: 20px;">
+                <a href="#" style="color: #d4af37; text-decoration: none; margin: 0 10px; font-size: 16px;">Facebook</a>
+                <a href="#" style="color: #d4af37; text-decoration: none; margin: 0 10px; font-size: 16px;">Instagram</a>
+                <a href="#" style="color: #d4af37; text-decoration: none; margin: 0 10px; font-size: 16px;">Pinterest</a>
+                <a href="#" style="color: #d4af37; text-decoration: none; margin: 0 10px; font-size: 16px;">Twitter</a>
+            </div>
+            
+            <div class="unsubscribe" style="margin-top: 15px; font-size: 12px; color: #888;">
+                <p>You're receiving this email because you just signed up for Bijoux Chic.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
