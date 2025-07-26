@@ -67,9 +67,9 @@ def login(request):
                 key="access_token",
                 value=str(token.key),
                 max_age=60*60*24*7,  
-                secure=False,    
+                secure=True,    
                 httponly=True,
-                samesite='Lax',     
+                samesite='None',     
                 path='/',
             )
 
@@ -77,17 +77,17 @@ def login(request):
                 key="isLoggedIn",
                 value=True,
                 max_age=60*60*24*7,  
-                secure=False,        
+                secure=True,        
                 httponly=True,
-                samesite='Lax',     
+                samesite='None',     
                 path='/',
             )
 
             response.set_cookie(
                 "csrftoken", get_token(request),
-                httponly=False,
+                httponly=True,
                 secure=False, 
-                samesite="Lax"
+                samesite="None"
             )
 
             return response
