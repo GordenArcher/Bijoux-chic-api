@@ -146,7 +146,7 @@ def login(request):
                 max_age=60*60*24*7,  
                 secure=True,        
                 httponly=True,
-                samesite='Lax',     
+                samesite='None',     
                 path='/',
             )
 
@@ -156,7 +156,7 @@ def login(request):
                 max_age=60*60*24*7,  
                 secure=True,        
                 httponly=True,
-                samesite='Lax',     
+                samesite='None',     
                 path='/',
             )
 

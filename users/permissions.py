@@ -3,8 +3,8 @@ from rest_framework.permissions import BasePermission
 class IsFromAllowedOrigin(BasePermission):
     def has_permission(self, request, view):
         allowed_origins = [ 
-            "http://localhost:5173", 
-            "http://localhost:5174"
+            "https://bijoux-chic.vercel.app", 
+            "https://admin-bijoux-chic.vercel.app"
         ]
 
         origin = request.headers.get("Origin")
