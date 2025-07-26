@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-qp$fa7qb15xn@kmw5gt73+=w1zi%drx^)6^l==c2a^6$)83^3c'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["bijouxchic.pythonanywhere.com"]
 
 
 # Application definition
@@ -68,8 +68,10 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
-    "http://127.0.0.1:5174",
+    "https://bijoux-chic.vercel.app",
+    "https://admin-bijoux-chic.vercel.app",
 ]
+
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
