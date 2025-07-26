@@ -85,9 +85,11 @@ def login(request):
 
             response.set_cookie(
                 "csrftoken", get_token(request),
-                httponly=True,
-                secure=False, 
-                samesite="None"
+                httponly=False,
+                max_age=60*60*24*7, 
+                secure=True, 
+                samesite="None",
+                path='/',
             )
 
             return response
