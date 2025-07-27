@@ -237,17 +237,29 @@ def logout(request):
             "message":"You logged out"
         }, status=status.HTTP_200_OK)
 
-        res.delete_cookie(
-            key="access_token",
-            path="/",
-        )
-
-        res.delete_cookie(
+        res.set_cookie(
             key="isLoggedIn",
+            value="",
+            max_age=0,
+            expires="Thu, 01 Jan 1970 00:00:00 GMT",
             path="/",
+            secure=True,
+            samesite="None",
+            httponly=True,
         )
 
-        
+        res.set_cookie(
+            key="access_token",
+            value="",
+            max_age=0,
+            expires="Thu, 01 Jan 1970 00:00:00 GMT",
+            path="/",
+            secure=True,
+            samesite="None",
+            httponly=True,
+        )
+
+
         return res
         
 
