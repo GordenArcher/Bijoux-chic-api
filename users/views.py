@@ -251,6 +251,8 @@ def logout(request):
             secure=True,
         )
 
+        return res
+
         
 
     except Exception as e:
