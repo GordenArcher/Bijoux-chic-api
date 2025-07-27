@@ -132,6 +132,8 @@ def login(request):
         user = authenticate(request, username=username, password=password)
 
         if user:
+            Token.objects.filter(user=user).delete()
+
             token, _ = Token.objects.get_or_create(user=user)
 
             response = Response({
@@ -238,13 +240,17 @@ def logout(request):
         res.delete_cookie(
             key="access_token",
             path="/",
+            samesite='None',
+            secure=True,
         )
 
         res.delete_cookie(
             key="isLoggedIn",
             path="/",
+            samesite='None',
+            secure=True,
         )
-        return res
+
         
 
     except Exception as e:
