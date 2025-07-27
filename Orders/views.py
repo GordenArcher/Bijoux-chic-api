@@ -116,7 +116,7 @@ def checkout(request):
                 "email": user.email,
                 "amount": int(total_amount * 100),
                 "reference": reference,
-                "callback_url": "http://localhost:5173/checkout/success-payment"
+                "callback_url": "https://bijoux-chic.vercel.app/checkout/success-payment"
             }
 
             try:
@@ -158,7 +158,7 @@ def checkout(request):
                 "message": "Order created. You'll be contacted soon",
                 "order_id": order.id,
                 "reference": reference,
-                "payment_link": "http://localhost:5173/me/profile"
+                "payment_link": "https://bijoux-chic.vercel.app/me/profile"
             }, status=status.HTTP_201_CREATED)
 
     except Exception as e:

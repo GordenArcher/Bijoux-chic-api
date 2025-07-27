@@ -131,7 +131,7 @@ def create_category(request):
     try:
         # Validate required fields
         name = request.data.get('name')
-        description = request.data.get('description', ''),
+        description = request.data.get('description')
         image_file = request.FILES.get('image')
 
         if not name or not description or not image_file:
@@ -171,6 +171,7 @@ def create_category(request):
             "message": f"{str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 @api_view(["GET"])
 @permission_classes([IsFromAllowedOrigin])
