@@ -18,6 +18,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
 from .permissions import IsFromAllowedOrigin
 from admin_panel.permissions import IsStaffUser
+from django.http import JsonResponse
 # Create your views here.
 
 
@@ -231,7 +232,7 @@ def logout(request):
 
         auth.logout(request)
 
-        res = Response({
+        res = JsonResponse({
             "status":"success",
             "authenticated": False,
             "message":"You logged out"
