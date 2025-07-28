@@ -16,7 +16,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 @permission_classes([IsFromAllowedOrigin])
 def get_products(request):
     try:
-        product = Product.objects.filter(not_available=False).order_by('-created_at')
+        product = Product.objects.filter(not_available=False).select_related("category").prefetch_related("images").order_by('-created_at')
 
         product_serializer = ProductSerializer(product, many=True)
 
@@ -39,7 +39,7 @@ def get_products(request):
 @permission_classes([IsFromAllowedOrigin, IsStaffUser])
 def get_all_products(request):
     try:
-        product = Product.objects.all().order_by('-created_at')
+        product = Product.objects.select_related('category').prefetch_related('images').all().order_by('-created_at')
 
         product_serializer = ProductSerializer(product, many=True)
 
@@ -121,15 +121,8 @@ def get_product_via_id(request, uuid):
 @permission_classes([IsFromAllowedOrigin, IsStaffUser])
 @parser_classes([MultiPartParser, FormParser])
 def create_category(request):
-    """
-    Create a new category with image upload
-    Expected POST data:
-    - name (required)
-    - description (optional)
-    - image (optional)
-    """
+
     try:
-        # Validate required fields
         name = request.data.get('name')
         description = request.data.get('description')
         image_file = request.FILES.get('image')
