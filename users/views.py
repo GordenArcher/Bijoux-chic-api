@@ -46,8 +46,8 @@ def send_email(user):
 
 
 @api_view(['POST'])
-@permission_classes([])
-@authentication_classes([AllowAny])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def register(request):
     data = request.data
 
@@ -120,8 +120,8 @@ def register(request):
 
 
 @api_view(['POST'])
-@permission_classes([])
-@authentication_classes([AllowAny])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def login(request):
     username = request.data.get("username")
     password = request.data.get("password")

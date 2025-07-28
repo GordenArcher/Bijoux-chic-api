@@ -19,8 +19,8 @@ from django.utils import timezone
 # Create your views here.
 
 @api_view(['POST'])
-@permission_classes([])
-@authentication_classes([AllowAny])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def login(request):
     email = request.data.get("email")
     password = request.data.get("password")
