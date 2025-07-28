@@ -1,10 +1,10 @@
 from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework.authtoken.admin import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib import auth
 from django.contrib.auth import get_user_model
@@ -46,6 +46,8 @@ def send_email(user):
 
 
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([AllowAny])
 def register(request):
     data = request.data
 
@@ -118,6 +120,8 @@ def register(request):
 
 
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([AllowAny])
 def login(request):
     username = request.data.get("username")
     password = request.data.get("password")
