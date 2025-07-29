@@ -275,7 +275,7 @@ def pay_via_reference(request):
             "email": user.email,
             "amount": int(order.total_amount * 100),
             "reference": new_reference,
-            "callback_url": "http://localhost:5173/checkout/success-payment"
+            "callback_url": "https://bijoux-chic.vercel.app/checkout/success-payment"
         }
 
         try:
