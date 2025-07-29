@@ -680,7 +680,7 @@ def get_feedback(request):
 
     try:
 
-        feedback = UserFeedback.objects.all().order_by('-created_by')
+        feedback = UserFeedback.objects.all().order_by('-sent_at')
 
         feedback_serializer = UserFeedbackSerializer(feedback, many=True)
 
