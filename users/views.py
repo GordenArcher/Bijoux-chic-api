@@ -9,7 +9,7 @@ from rest_framework import status
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from .models import UserAccount, Cart, Wishlist, UserFeedback
-from .serializers import UserAccountSerializer, CartSerializer, WishlistSerializer
+from .serializers import UserAccountSerializer, CartSerializer, WishlistSerializer, UserFeedbackSerializer
 from store.models import Product
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
@@ -634,13 +634,14 @@ def change_password(request):
 
 @api_view(["POST"])
 @permission_classes([IsFromAllowedOrigin])
+@authentication_classes([])
 def user_feedback(request):
     data = request.data
 
     full_name = data.get("full_name")
     email = data.get("email")
     message = data.get("message")
-    subject = data.get("subject")
+    subject = data.get("subject", "General Feedback")
 
     try:
 
@@ -649,26 +650,57 @@ def user_feedback(request):
                 "status":"error",
                 "message":"All fields are required"
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+        user_account = None
+        if request.user.is_authenticated:
+            user = UserAccount.objects.filter(user=request.user).first() 
+            user_account = user
         
 
-        UserFeedback.objects.create(full_name=full_name, message=message, email=email, subject=subject)
+        UserFeedback.objects.create(user=user_account, full_name=full_name, message=message, email=email, subject=subject)
 
         return Response({
             "status":"success",
-            "message":"recieved"
+            "message":"Your feedback has been received Thank you!"
         }, status=status.HTTP_201_CREATED)
 
 
     except Exception as e:
         return Response({
             "status":"error",
-            "message":f"{e}"            
+            "message":f"An unexpected error occured"            
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+def get_feedback(request):
+
+    try:
+
+        feedback = UserFeedback.objects.all().order_by('-created_by')
+
+        feedback_serializer = UserFeedbackSerializer(feedback, many=True)
+
+        return Response({
+            "status":"success",
+            "message":"ok",
+            "feedback": feedback_serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+    except Exception as e:
+        return Response({
+            "status":"error",
+            "message":f"An unexpected error occured"            
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsStaffUser, IsFromAllowedOrigin])
 def get_all_users(request):
     try:
 
@@ -687,6 +719,7 @@ def get_all_users(request):
             "status":"error",
             "message":f"{e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 @api_view(['POST'])

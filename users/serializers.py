@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserAccount, Wishlist, Cart
+from .models import UserAccount, Wishlist, Cart, UserFeedback
 from store.serializers import ProductSerializer
 
 
@@ -35,3 +35,12 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields = ['id', 'product', 'quantity', 'color', 'size', 'added_at', 'updated_at']
+
+
+
+class UserFeedbackSerializer(serializers.ModelSerializer):
+    user = UserAccountSerializer(read_only=True)
+
+    class Meta:
+        model = UserFeedback
+        fields = '__all__'
