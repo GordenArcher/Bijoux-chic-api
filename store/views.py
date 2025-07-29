@@ -1,5 +1,5 @@
-from django.shortcuts import render, get_object_or_404
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes, parser_classes, authentication_classes
 from .models import Product, Category
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,9 +11,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 # Create your views here.
 
-
 @api_view(["GET"])
 @permission_classes([IsFromAllowedOrigin])
+@authentication_classes([])
 def get_products(request):
     try:
         product = Product.objects.filter(not_available=False).select_related("category").prefetch_related("images").order_by('-created_at')
@@ -68,6 +68,7 @@ def get_fallback_products(category_name=None):
 
 
 @api_view(["GET"])
+@authentication_classes([])
 def get_product_via_id(request, uuid):
     try:
 
@@ -168,6 +169,7 @@ def create_category(request):
 
 @api_view(["GET"])
 @permission_classes([IsFromAllowedOrigin])
+@authentication_classes([])
 def get_categories(request):
 
     try:
@@ -192,6 +194,7 @@ def get_categories(request):
 
 @api_view(["GET"])
 @permission_classes([IsFromAllowedOrigin])
+@authentication_classes([])
 def get_product_via_category(request):
 
     try:
@@ -215,6 +218,7 @@ def get_product_via_category(request):
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
     
+
 
 
 @api_view(['POST'])
@@ -265,6 +269,7 @@ def create_product(request):
             "status":"error",
             "message": str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
@@ -332,6 +337,7 @@ def edit_product(request, product_id):
     
 
 
+
 @api_view(['POST'])
 @permission_classes([IsStaffUser])
 def delete_product(request):
@@ -369,6 +375,3 @@ def delete_product(request):
             "status":"error",
             "message": f"{e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
-
-
-
