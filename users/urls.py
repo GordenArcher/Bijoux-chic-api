@@ -19,5 +19,5 @@ urlpatterns = [
     path("feedback/", views.user_feedback),
     path("csrf/", views.get_csrf_token),
     path('make-staff/', views.make_user_staff, name='make-staff'),
-    path('get_feeback/', views.get_feedback),
+    path('get_feedback/', views.get_feedback),
 ]

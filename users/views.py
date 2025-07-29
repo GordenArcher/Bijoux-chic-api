@@ -675,7 +675,7 @@ def user_feedback(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+@permission_classes([IsStaffUser])
 def get_feedback(request):
 
     try:
