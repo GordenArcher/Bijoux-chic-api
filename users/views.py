@@ -16,17 +16,8 @@ from django.core.mail import EmailMessage
 from django.db import transaction
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
-from .permissions import IsFromAllowedOrigin
 from admin_panel.permissions import IsStaffUser
 # Create your views here.
-
-
-@ensure_csrf_cookie
-@api_view(["GET"])
-def get_csrf_token(request):
-    csrf = get_token(request)
-    return Response({"message": "CSRF cookie set.", "csrf": csrf}, status=status.HTTP_200_OK)
-
 
 
 def send_email(user):
@@ -99,7 +90,7 @@ def register(request):
 
         UserAccount.objects.create(user=user, phone_number=phone_number)
 
-        token = Token.objects.create(user=user)
+        Token.objects.create(user=user)
 
         send_email(user)
         
@@ -115,7 +106,6 @@ def register(request):
             "status": "error", 
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 
@@ -136,6 +126,22 @@ def login(request):
         user = authenticate(request, username=username, password=password)
 
         if user:
+
+            try:
+                user_account = UserAccount.objects.get(user=user)
+            except UserAccount.DoesNotExist:
+                return Response({
+                    "status":"error",
+                    "message":"User doesn't have an account yet"
+                }, status=status.HTTP_404_NOT_FOUND)  
+
+            if user_account.is_deleted:
+                return Response({
+                    "status":"error",
+                    "message":"User account has been deleted."
+                }, status=status.HTTP_400_BAD_REQUEST) 
+             
+
             Token.objects.filter(user=user).delete()
             
             token, _ = Token.objects.get_or_create(user=user)
@@ -630,48 +636,54 @@ def change_password(request):
        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
 
 
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 
 @api_view(["POST"])
-@permission_classes([IsFromAllowedOrigin])
-@authentication_classes([])
+@permission_classes([AllowAny])
+# @authentication_classes([])
 def user_feedback(request):
     data = request.data
-
     full_name = data.get("full_name")
     email = data.get("email")
     message = data.get("message")
     subject = data.get("subject", "General Feedback")
 
+    if not all([full_name, email, message]):
+        return Response({
+            "status":"error",
+            "message":"All fields are required"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     try:
+        validate_email(email)
+    except ValidationError:
+        return Response({
+            "status":"error",
+            "message":"Invalid email address"
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-        if not all([full_name, email, message]):
-            return Response({
-                "status":"error",
-                "message":"All fields are required"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-
-        user_account = None
-        if request.user.is_authenticated:
-            user = UserAccount.objects.filter(user=request.user).first() 
-            user_account = user
-        
-
-        UserFeedback.objects.create(user=user_account, full_name=full_name, message=message, email=email, subject=subject)
+    try:
+        UserFeedback.objects.create(
+            user=None,
+            full_name=full_name,
+            message=message,
+            email=email,
+            subject=subject
+        )
 
         return Response({
             "status":"success",
-            "message":"Your feedback has been received Thank you!"
+            "message":"Your feedback has been received. Thank you!"
         }, status=status.HTTP_201_CREATED)
-
 
     except Exception as e:
         return Response({
             "status":"error",
-            "message":f"An unexpected error occured"            
+            "message":f"An unexpected error occurred. Please try again later. {e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 
 
 @api_view(["GET"])
@@ -700,7 +712,7 @@ def get_feedback(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+@permission_classes([IsStaffUser])
 def get_all_users(request):
     try:
 
@@ -723,38 +735,38 @@ def get_all_users(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+@permission_classes([IsStaffUser])
 def make_user_staff(request):
     email = request.data.get('email')
-
     try:
 
         if not email:
             return Response({
                 "status":"error",
                 "message": "Email is required"
-                },status=status.HTTP_400_BAD_REQUEST)
+            },status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email=email)
             if user.is_staff:
                 return Response({
                 "status":"error",
-                "message": f"{email} is already staff"
-                },status=status.HTTP_200_OK)
+                "message": f"{email} is already an admin"
+            },status=status.HTTP_404_NOT_FOUND)
             
         except User.DoesNotExist:
             return Response({
                 "status":"error",
                 "message": f"User with {email} not found"
-                },status=status.HTTP_404_NOT_FOUND)
+            },status=status.HTTP_404_NOT_FOUND)
                 
         user.is_staff = True
         user.save()
+
         return Response({
             "status":"error",
-            "message": f"{email} has been granted staff status"
-            },status=status.HTTP_200_OK)
+            "message": f"{email} has been granted admin status"
+        },status=status.HTTP_200_OK)
     
 
     except Exception as e:
@@ -762,3 +774,32 @@ def make_user_staff(request):
             "status":"error",
             "message":f"{e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def delete_user_account(request):
+    try:
+        try:
+            user = UserAccount.objects.get(user=request.user)
+        except UserAccount.DoesNotExist:   
+            return Response({
+                "status":"error",
+                "message":"User doesn't have an account yet"
+            }, status=status.HTTP_404_NOT_FOUND)  
+        
+        user.is_deleted = True
+        user.save()
+
+        return Response({
+            "status":"success",
+            "message":"Your account has been deleted."
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            "status":"error",
+            "message":f"{e}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        

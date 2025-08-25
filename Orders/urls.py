@@ -8,4 +8,8 @@ urlpatterns = [
     path("me/orders/", views.get_user_orders),
     path("me/reference/<str:reference>/", views.get_order_by_reference),
     path("all_orders/", views.get_all_orders),
+    path("check_coupon/", views.check_coupon),
+    path("coupon/create/", views.create_coupon),
+    path("coupon/deactivate/", views.deactivate_coupon),
+    path("coupon/delete/", views.delete_coupon),
 ]

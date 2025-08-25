@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
 import uuid
 import random
 from datetime import datetime
@@ -12,6 +11,7 @@ class Coupon(models.Model):
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.code

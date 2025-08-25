@@ -20,7 +20,9 @@ class Category(models.Model):
     slug = AutoSlugField(
         populate_from=name_plus_random,
         unique=True,
-        max_length=6
+        max_length=6,
+        null=True,
+        blank=True
     )
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='store/category/', null=True, blank=True)

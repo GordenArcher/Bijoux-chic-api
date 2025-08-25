@@ -5,14 +5,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import ProductSerializer, CategorySerializer, ProductImages
 from uuid import UUID
-from users.permissions import IsFromAllowedOrigin
 from admin_panel.permissions import IsStaffUser
 from rest_framework.parsers import MultiPartParser, FormParser
 
 # Create your views here.
 
 @api_view(["GET"])
-@permission_classes([IsFromAllowedOrigin])
+@permission_classes([])
 @authentication_classes([])
 def get_products(request):
     try:
@@ -36,7 +35,7 @@ def get_products(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsFromAllowedOrigin, IsStaffUser])
+@permission_classes([IsStaffUser])
 def get_all_products(request):
     try:
         product = Product.objects.select_related('category').prefetch_related('images').all().order_by('-created_at')
@@ -119,16 +118,15 @@ def get_product_via_id(request, uuid):
 
 
 @api_view(["POST"])
-@permission_classes([IsFromAllowedOrigin, IsStaffUser])
+@permission_classes([IsStaffUser])
 @parser_classes([MultiPartParser, FormParser])
 def create_category(request):
-
     try:
         name = request.data.get('name')
         description = request.data.get('description')
         image_file = request.FILES.get('image')
 
-        if not name or not description or not image_file:
+        if not all([name, description, image_file]):
             return Response({
                 "status":"error",
                 "message": "All fields are required" 
@@ -142,17 +140,16 @@ def create_category(request):
                 },status=status.HTTP_409_CONFLICT
             )
 
-
         if image_file:
             if not image_file.content_type.startswith('image/'):
                 return Response({
                     "status" : "error",
                     "message": "Invalid file type. Only images are allowed"
-                    },status=status.HTTP_400_BAD_REQUEST
+                    },status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
                 )
             
 
-        category = Category.objects.create(name=name, description=description, image=image_file)
+        Category.objects.create(name=name, description=description, image=image_file)
         
         return Response({
             "status":"success",
@@ -168,7 +165,7 @@ def create_category(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsFromAllowedOrigin])
+@permission_classes([])
 @authentication_classes([])
 def get_categories(request):
 
@@ -193,7 +190,7 @@ def get_categories(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsFromAllowedOrigin])
+@permission_classes([])
 @authentication_classes([])
 def get_product_via_category(request):
 
@@ -220,9 +217,8 @@ def get_product_via_category(request):
     
 
 
-
 @api_view(['POST'])
-@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+@permission_classes([IsStaffUser, ])
 @parser_classes([MultiPartParser, FormParser])
 def create_product(request):
     try:
@@ -274,9 +270,10 @@ def create_product(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsStaffUser, IsFromAllowedOrigin])
+@permission_classes([IsStaffUser, ])
 @parser_classes([MultiPartParser, FormParser])
 def edit_product(request, product_id):
+    category = request.data.get('category')
     try:
         
         try:
@@ -289,7 +286,7 @@ def edit_product(request, product_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            category = Category.objects.get(name=request.data.get('category'))
+            category = Category.objects.get(name=category)
         except Category.DoesNotExist:
             return Response({
                 "status":"error",

@@ -4,8 +4,8 @@ from .models import UserAccount, Wishlist, Cart, UserFeedback
 # Register your models here.
 @admin.register(UserAccount)
 class UserAccountAdmin(admin.ModelAdmin):
-    list_display = ("user", "phone_number", "street_address", "city", "region")
-    list_filter = ("user", "phone_number", "street_address", "city", "region")
+    list_display = ("user", "phone_number", "street_address", "city", "region", 'is_deleted', 'deleted_at')
+    list_filter = ("user", "phone_number", "street_address", "city", "region", 'is_deleted', 'deleted_at')
 
     def __str__(self):
         return f"{self.user.username}' account"

@@ -6,17 +6,18 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import OrderItemSerializer, OrderSerializer
+from .serializers import OrderItemSerializer, OrderSerializer, CouponSerializer
 from store.models import Product
 from users.models import Cart, UserAccount
 import requests
 import uuid
 from django.conf import settings
 from django.utils import timezone
+from django.utils.timezone import timedelta
 from django.db import transaction
 from admin_panel.permissions import IsStaffUser
+from .utils import generate_coupon_code
 # Create your views here.
-
 
 
 @api_view(['POST'])
@@ -34,6 +35,7 @@ def checkout(request):
     phone_number = data.get("phone_number", "")
     shipping_address = data.get("shipping_address", "")
     order_type = data.get("order_type")
+    coupon = data.get("coupon")
 
     try:
 
@@ -51,17 +53,38 @@ def checkout(request):
                 "message": "User account not found."
             }, status=status.HTTP_404_NOT_FOUND)
 
+
+        if coupon:
+            try:
+                order_coupon = Coupon.objects.get(code=coupon)
+                if order_coupon.used:
+                    return Response({
+                        "status":"error",
+                        "message":"coupon is already used"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if not order_coupon.is_active or (order_coupon.expires_at and timezone.now() > order_coupon.expires_at):
+                    return Response({
+                        "status":"error",
+                        "message":"The coupon has expired or not active"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            except Coupon.DoesNotExist:
+                return Response({
+                    "status":"error",
+                    "message":"coupon does not exist"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+
         total_amount = 0
         order_items = []
 
         for item in cart_items:
             product_id = item["product"]["id"]
-            print(product_id)
             quantity = item["quantity"]
 
             try:
                 product = Product.objects.get(id=product_id)
-                print(product)
             except Product.DoesNotExist:
                 return Response({
                     "status": "error",
@@ -71,6 +94,12 @@ def checkout(request):
 
             total_amount += product.discount_price * quantity
             order_items.append((product, quantity, product.discount_price))
+
+            if order_coupon.discount_type == 'percent':
+                discount_amount = total_amount * (order_coupon.discount_value / 100)
+                total_amount = total_amount - discount_amount
+            else: 
+                total_amount = max(0, total_amount - order_coupon.discount_value)
 
         order = Order.objects.create(
             user=account_user,
@@ -95,6 +124,7 @@ def checkout(request):
         reference = str(uuid.uuid4())
         order.reference = reference
         order.order_type = order_type
+        order.coupon = order_coupon
         order.save()
 
         with transaction.atomic():
@@ -142,6 +172,8 @@ def checkout(request):
 
             payment = PaymentTransaction.objects.create(reference=reference, status="pending", amount=total_amount, gateway_response=paystack_data)
             order.payment = payment
+            order.coupon.used = True
+            order.coupon.save()
             order.save()
 
             return Response({
@@ -174,7 +206,6 @@ def checkout(request):
 @permission_classes([IsAuthenticated])
 def verify_payment(request):
     reference = request.data.get("reference")
-
     try:
 
         if not reference:
@@ -309,7 +340,6 @@ def pay_via_reference(request):
             order.payment = payment
             order.save() 
             
-
         order.reference = new_reference
         order.save()
 
@@ -411,3 +441,185 @@ def get_all_orders(request):
             "status":"error",
             "message":f"{e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["POST"])
+@permission_classes([IsStaffUser])
+def create_coupon(request):
+    coupon_type = request.data.get("coupon_type")
+    discount_value = request.data.get("discount_value")
+
+    try:
+        coupon_code = generate_coupon_code()
+
+        if not coupon_type or discount_value is None:
+            return Response({
+                "status": "error",
+                "message": "coupon_type and discount_value are required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_types = dict(Coupon._meta.get_field('discount_type').choices).keys()
+        if coupon_type not in valid_types:
+            return Response({
+                "status": "error",
+                "message": f"Invalid coupon type. Must be one of {list(valid_types)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        created_coupon = Coupon.objects.create(
+            code=coupon_code,
+            discount_type=coupon_type,
+            discount_value=discount_value,
+            expires_at=timezone.now() + timedelta(days=7)
+        )
+
+        return Response({
+            "status": "success",
+            "message":"Coupon creaded successfully.",
+            "coupon": {
+                "code": created_coupon.code,
+                "discount_type": created_coupon.discount_type,
+                "discount_value": created_coupon.discount_value,
+                "expires_at": created_coupon.expires_at
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)      
+    
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def check_coupon(request):
+    coupon = request.data.get("coupon")
+
+    try:
+
+        if not coupon:
+            return Response({
+                "status":"error",
+                "message":"Coupon code is required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            _coupon = Coupon.objects.get(code=coupon)
+
+            if _coupon.used:
+                return Response({
+                    "status":"error",
+                    "message":"coupon is already used"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not _coupon.is_active or (_coupon.expires_at and timezone.now() > _coupon.expires_at):
+                return Response({
+                    "status":"error",
+                    "message":"coupon expired or not active"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Coupon.DoesNotExist:
+            return Response({
+                "status":"error",
+                "message":"coupon does not exist"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+
+        coupon_serializer = CouponSerializer(_coupon)
+        
+
+        return Response({
+            "status":"success",
+            "message":"ok",
+            "data": coupon_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            "status":"error",
+            "message":f"{e}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+@api_view(["POST"])
+@permission_classes([IsStaffUser])
+def deactivate_coupon(request):
+    code = request.data.get("code")
+    activated = request.data.get("activated")
+    try:
+
+        if not code:
+            return Response({
+                "status":"error",
+                "message":"code is required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            coupon = Coupon.objects.get(code=code)
+        except Coupon.DoesNotExist:
+            return Response({
+                "status":"error",
+                "message":"Coupon code not found"
+            }, status=status.HTTP_404_NOT_FOUND)   
+
+
+        if activated == "activated":
+            coupon.is_active = True
+            coupon.save()
+            message = "Coupon reactivated successful."
+        else:
+            coupon.is_active = False
+            coupon.save()
+            message = "Coupon deactivated successful."
+
+        return Response({
+            "status":"success",
+            "message": message
+        }, status=status.HTTP_200_OK)
+
+
+
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)              
+    
+
+
+
+@api_view(["POST"])
+@permission_classes([IsStaffUser])
+def delete_coupon(request):
+    code = request.data.get("code")
+    try:
+        
+        try:
+            coupon = Coupon.objects.get(code=code)
+        except Coupon.DoesNotExist:
+            return Response({
+                "status":"error",
+                "message":"Coupon code not found"
+            }, status=status.HTTP_404_NOT_FOUND)    
+        
+
+        coupon.delete()
+
+        return Response({
+            "status":"success",
+            "message":"Coupon deletion was successful."
+        }, status=status.HTTP_200_OK)
+
+
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)              
+
+
+

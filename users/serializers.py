@@ -7,7 +7,7 @@ from store.serializers import ProductSerializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "first_name", "last_name", "email")
+        fields = ("id", "username", "first_name", "last_name", "email", "is_staff")
 
 
 
@@ -16,7 +16,7 @@ class UserAccountSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserAccount
-        fields = ['id', 'user', 'phone_number', 'profile_image', 'street_address', 'city', 'region']
+        fields = ['id', 'user', 'phone_number', 'profile_image', 'street_address', 'city', 'region', 'is_deleted']
 
 
 

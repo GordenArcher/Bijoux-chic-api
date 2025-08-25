@@ -30,6 +30,7 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     payment = PaymentTransactionSerializer(read_only=True)
+    coupon = CouponSerializer(read_only=True)
 
     class Meta:
         model = Order

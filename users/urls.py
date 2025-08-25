@@ -17,7 +17,8 @@ urlpatterns = [
     path("wishlist/add/", views.save_wishlist),
     path("wishlist/remove/<uuid:id>/", views.delete_wishlist),
     path("feedback/", views.user_feedback),
-    path("csrf/", views.get_csrf_token),
-    path('make-staff/', views.make_user_staff, name='make-staff'),
+    # path("csrf/", views.get_csrf_token),
+    path('make_admin/', views.make_user_staff),
     path('get_feedback/', views.get_feedback),
+    path("delete_account/", views.delete_user_account)
 ]

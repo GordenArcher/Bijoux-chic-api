@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from store.models import Product, Category
 from Orders.models import Coupon, PaymentTransaction, Order
 from django.utils import timezone
+from .serializers import CouponSerializer
 
 # Create your views here.
 
@@ -108,7 +109,6 @@ def login(request):
 
 
 
-# endpoint for checking if user is a staff
 @api_view(["GET"])
 @permission_classes([IsStaffUser])
 def check_authentication(request):
@@ -271,11 +271,10 @@ def active_alerts(request):
         'id', 'title', 'stock'
     )[:5]
     
-    # Expiring coupons
-    # expiring_coupons = Coupon.objects.filter(
-    #     expiry_date__lte=timezone.now() + timedelta(days=3),
-    #     is_active=True
-    # )
+    expiring_coupons = Coupon.objects.filter(
+        expires_at__lte=timezone.now() + timedelta(days=3),
+        is_active=True
+    )
     
     pending_orders = Order.objects.filter(
         status='pending',
@@ -285,5 +284,29 @@ def active_alerts(request):
     return Response({
         'low_stock': list(low_stock),
         'pending_orders_24h': pending_orders,
-        # 'expiring_coupons': expiring_coupons.count()
+        'expiring_coupons': expiring_coupons.count()
     })
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])
+def get_coupons(request):
+    try:
+
+        all_coupon = Coupon.objects.all()
+
+        coupon_serializer = CouponSerializer(all_coupon, many=True)
+
+        return Response({
+            "status":"success",
+            "message":"ok",
+            "coupons": coupon_serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": f"An error occurred: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        

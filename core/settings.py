@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-qp$fa7qb15xn@kmw5gt73+=w1zi%drx^)6^l==c2a^6$)83^3c'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["bijouxchic.pythonanywhere.com"]
+ALLOWED_HOSTS = ["bijouxchic.pythonanywhere.com", "localhost"]
 
 
 # Application definition
@@ -50,9 +50,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # 'users.permissions.IsFromAllowedOrigin',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'core.middleware.CSRFFromCookieMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -60,7 +62,7 @@ MIDDLEWARE = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
         'users.authentication.CookieTokenAuthentication',
     )
 }
@@ -73,11 +75,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 
-# CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
-# CSRF_COOKIE_HTTPONLY = False
-# CSRF_COOKIE_SAMESITE = "None"
-# CSRF_COOKIE_SECURE = True  
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True  
 
 SESSION_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True

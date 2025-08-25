@@ -25,9 +25,9 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ("code", "discount_type", "discount_value", "is_active", "used")
-    search_fields = ("code", "discount_type", "discount_value", "is_active", "used")
-    list_filter =("code", "discount_type", "discount_value", "is_active", "used")
+    list_display = ("code", "discount_type", "discount_value", "is_active", "used", "expires_at")
+    search_fields = ("code", "discount_type", "discount_value", "is_active", "used", "expires_at")
+    list_filter =("code", "discount_type", "discount_value", "is_active", "used", "expires_at")
 
     def __str__(self):
         return f"Coupon code - {self.code}"

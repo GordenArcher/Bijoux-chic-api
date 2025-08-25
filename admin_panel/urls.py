@@ -9,4 +9,5 @@ urlpatterns = [
     path('dashboard/payments/', views.payment_insights),
     path('dashboard/categories/', views.category_metrics),
     path('dashboard/alerts/', views.active_alerts),
+    path('coupons/', views.get_coupons),
 ]

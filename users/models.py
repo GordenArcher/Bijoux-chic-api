@@ -9,6 +9,8 @@ class UserAccount(models.Model):
     street_address = models.CharField(blank=True, null=True, max_length=10000)
     city = models.CharField(blank=True, null=True, max_length=1000)
     region = models.CharField(blank=True, null=True, max_length=1000)
+    is_deleted = models.BooleanField(default=False, null=True, blank=True)
+    deleted_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s account info"
