@@ -1,21 +1,19 @@
-from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
-from rest_framework.authtoken.admin import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login as auth_login
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
-from django.middleware.csrf import get_token
 from .permissions import IsStaffUser
 from rest_framework.permissions import IsAdminUser
-from django.db.models import Sum, Count, Q
-from datetime import datetime, timedelta
+from django.db.models import Sum, Count
+from datetime import timedelta
 from store.models import Product, Category
 from Orders.models import Coupon, PaymentTransaction, Order
 from django.utils import timezone
 from .serializers import CouponSerializer
+from utils.cookies.setCookies import set_jwt_cookies
 
 # Create your views here.
 
@@ -34,72 +32,41 @@ def login(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
-        user = authenticate(request, email=email, password=password)
-
-        if not user:
-            try:
-                user = get_user_model().objects.get(email=email)
-                if user.check_password(password):
-                    auth_login(request, user)
-                else:
-                    user = None
-            except get_user_model().DoesNotExist:
-                user = None
-
-        if user is None or not user.is_staff:
+        try:
+            user = get_user_model().objects.get(email=email)
+        except get_user_model().DoesNotExist:
             return Response({
-                "status":"error",
-                "message": "Unauthorized Access"
-            }, status=status.HTTP_403_FORBIDDEN)        
+                "status": "error",
+                "message": "Email provided does not exist, \n Please check your email and try again"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
-        if user:
-            Token.objects.filter(user=user).delete()
-
-            token, _ = Token.objects.get_or_create(user=user)
-
-            response = Response({
-                "status": "success",
-                "auth": True,
-                "message": "Login successful",
-            }, status=status.HTTP_201_CREATED)
-
-            response.set_cookie(
-                key="access_token",
-                value=str(token.key),
-                max_age=60*60*24*7,  
-                secure=True,    
-                httponly=True,
-                samesite='None',     
-                path='/',
-            )
-
-            response.set_cookie(
-                key="isLoggedIn",
-                value=True,
-                max_age=60*60*24*7,  
-                secure=True,        
-                httponly=True,
-                samesite='None',     
-                path='/',
-            )
-
-            response.set_cookie(
-                "csrftoken", get_token(request),
-                httponly=False,
-                max_age=60*60*24*7, 
-                secure=True, 
-                samesite="None",
-                path='/',
-            )
-
-            return response
-
-        else:
+        if not user.check_password(password):
             return Response({
                 "status": "error",
                 "message": "Invalid credentials"
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        
+        if user is None or not user.is_staff:
+            return Response({
+                "status":"error",
+                "message": "Unauthorized Access"
+            }, status=status.HTTP_403_FORBIDDEN)   
+
+            
+        refresh_token = RefreshToken.for_user(user)
+        access_token = str(refresh_token.access_token)
+
+        response = Response({
+            "status": "success",
+            "auth": True,
+            "message": "Login successful",
+        }, status=status.HTTP_201_CREATED)
+
+        set_jwt_cookies(response, refresh_token, access_token)
+
+        return response
 
     except Exception as e:
         return Response({

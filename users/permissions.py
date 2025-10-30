@@ -4,6 +4,7 @@ ALLOWED_ORIGINS = [
     "https://bijoux-chic.vercel.app",
     "https://admin-bijoux-chic.vercel.app",
     "http://localhost:5173",
+    "http://localhost:8000",
 ]
 
 class IsFromAllowedOrigin:
@@ -19,6 +20,7 @@ class IsFromAllowedOrigin:
 
         if not self._is_allowed(origin, referer):
             return JsonResponse({"detail": "Access denied"}, status=403)
+        
 
         return self.get_response(request)
 

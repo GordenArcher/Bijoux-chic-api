@@ -1,39 +1,22 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
-from rest_framework.authtoken.admin import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
 from django.contrib import auth
-from django.contrib.auth import get_user_model
 from .models import UserAccount, Cart, Wishlist, UserFeedback
 from .serializers import UserAccountSerializer, CartSerializer, WishlistSerializer, UserFeedbackSerializer
 from store.models import Product
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
 from django.db import transaction
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.middleware.csrf import get_token
 from admin_panel.permissions import IsStaffUser
+from handlers.tasks.sendMail import send_email
+from utils.cookies.setCookies import set_jwt_cookies
+from utils.cookies.deleteCookies import remove_jwt_cookies
 # Create your views here.
-
-
-def send_email(user):
-    html_content = render_to_string("Emails/welcome.html", {
-        "user": f"{user.get_full_name()}" 
-    })
-
-    email = EmailMessage(
-        subject="Thanks for Joining Bijoux Chic",
-        body=html_content,
-        from_email="Bijoux Chic Shop <no-reply@goriaai.com>",
-        to=[user.email],
-    )
-    email.content_subtype = "html"
-    email.send()
-
 
 
 @api_view(['POST'])
@@ -90,14 +73,11 @@ def register(request):
 
         UserAccount.objects.create(user=user, phone_number=phone_number)
 
-        Token.objects.create(user=user)
-
-        send_email(user)
-        
+        welcome_message = send_email.delay(user)
 
         return Response({
             "status": "success",
-            "message": "Registeration successfull",
+            "message": "Email was not sucessfull but account registration was successful" if not welcome_message else "Registeration successfull",
         }, status=status.HTTP_201_CREATED)
     
 
@@ -142,35 +122,18 @@ def login(request):
                 }, status=status.HTTP_400_BAD_REQUEST) 
              
 
-            Token.objects.filter(user=user).delete()
-            
-            token, _ = Token.objects.get_or_create(user=user)
 
+            refresh_token = RefreshToken.for_user(user)
+            access_token = str(refresh_token.access_token)
+            
             response = Response({
                 "status": "success",
                 "auth": True,
+                "token": access_token,
                 "message": "Login successful",
             }, status=status.HTTP_201_CREATED)
 
-            response.set_cookie(
-                key="access_token",
-                value=str(token.key),
-                max_age=60*60*24*7,  
-                secure=True,        
-                httponly=True,
-                samesite='None',     
-                path='/',
-            )
-
-            response.set_cookie(
-                key="isLoggedIn",
-                value=True,
-                max_age=60*60*24*7,  
-                secure=True,        
-                httponly=True,
-                samesite='None',     
-                path='/',
-            )
+            set_jwt_cookies(response, refresh_token, access_token)
 
             return response
 
@@ -236,39 +199,15 @@ def get_user(request):
 @permission_classes([IsAuthenticated])
 def logout(request):
     try:
-
-        Token.objects.filter(user=request.user).delete()
-
         auth.logout(request)
 
         res = Response({
             "status":"success",
             "authenticated": False,
-            "message":"You logged out"
+            "message":"You logged out sucessfull"
         }, status=status.HTTP_200_OK)
 
-        res.set_cookie(
-            key="isLoggedIn",
-            value="",
-            max_age=0,
-            expires="Thu, 01 Jan 1970 00:00:00 GMT",
-            path="/",
-            secure=True,
-            samesite="None",
-            httponly=True,
-        )
-
-        res.set_cookie(
-            key="access_token",
-            value="",
-            max_age=0,
-            expires="Thu, 01 Jan 1970 00:00:00 GMT",
-            path="/",
-            secure=True,
-            samesite="None",
-            httponly=True,
-        )
-
+        remove_jwt_cookies(res)
 
         return res
         
