@@ -7,54 +7,93 @@ from .serializers import ProductSerializer, CategorySerializer, ProductImages
 from uuid import UUID
 from admin_panel.permissions import IsStaffUser
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import throttle_classes
+from django.views.decorators.cache import cache_page
+from utils.cache.cache import set_cached_data, get_cached_data
+from utils.cache.category_cache_key import category_cache_key
 
 # Create your views here.
 
 @api_view(["GET"])
 @permission_classes([])
 @authentication_classes([])
+@throttle_classes([])
 def get_products(request):
     try:
-        product = Product.objects.filter(not_available=False).select_related("category").prefetch_related("images").order_by('-created_at')
+        cache_key = "all_public_products"
+        cached_data = get_cached_data(cache_key)
 
-        product_serializer = ProductSerializer(product, many=True)
+        if cached_data:
+            print("✅ Cache hit: public products")
+            return Response({
+                "status": "success",
+                "message": "ok (from cache)",
+                "product": cached_data
+            }, status=status.HTTP_200_OK)
+
+        # Fetch from DB if not cached
+        products = (
+            Product.objects.filter(not_available=False)
+            .select_related("category")
+            .prefetch_related("images")
+            .order_by("-created_at")
+        )
+        serializer = ProductSerializer(products, many=True)
+
+        # Cache result for a month
+        set_cached_data(cache_key, serializer.data)
+        print("🧠 Cached public products for 30 days")
 
         return Response({
-            "status":"success",
-            "message":"ok",
-            "product": product_serializer.data
+            "status": "success",
+            "message": "ok",
+            "product": serializer.data
         }, status=status.HTTP_200_OK)
-
 
     except Exception as e:
         return Response({
-            "status":"error",
-            "message":f"{e}"
+            "status": "error",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 
 
+
+# Admin/staff-only products
 @api_view(["GET"])
 @permission_classes([IsStaffUser])
+@throttle_classes([])
 def get_all_products(request):
     try:
-        product = Product.objects.select_related('category').prefetch_related('images').all().order_by('-created_at')
+        cache_key = "all_admin_products"
+        cached_data = get_cached_data(cache_key)
 
-        product_serializer = ProductSerializer(product, many=True)
+        if cached_data:
+            return Response({
+                "status": "success",
+                "message": "ok (from cache)",
+                "product": cached_data
+            }, status=status.HTTP_200_OK)
+
+        products = (
+            Product.objects.select_related("category")
+            .prefetch_related("images")
+            .order_by("-created_at")
+        )
+        serializer = ProductSerializer(products, many=True)
+
+        set_cached_data(cache_key, serializer.data)
 
         return Response({
-            "status":"success",
-            "message":"ok",
-            "product": product_serializer.data
+            "status": "success",
+            "message": "ok",
+            "product": serializer.data
         }, status=status.HTTP_200_OK)
-
 
     except Exception as e:
         return Response({
-            "status":"error",
-            "message":f"{e}"
+            "status": "error",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 
 
 def get_fallback_products(category_name=None):
@@ -68,6 +107,7 @@ def get_fallback_products(category_name=None):
 
 @api_view(["GET"])
 @authentication_classes([])
+@throttle_classes([])
 def get_product_via_id(request, uuid):
     try:
 
@@ -112,7 +152,6 @@ def get_product_via_id(request, uuid):
             "status": "error",
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 
@@ -164,58 +203,88 @@ def create_category(request):
         )
 
 
+
 @api_view(["GET"])
 @permission_classes([])
 @authentication_classes([])
+@throttle_classes([])
 def get_categories(request):
-
     try:
-        category = Category.objects.all()
+        cache_key = "all_categories"
+        cached_data = get_cached_data(cache_key)
 
-        category_serializer = CategorySerializer(category, many=True)
+        if cached_data:
+            return Response({
+                "status": "success",
+                "message": "ok (from cache)",
+                "category": cached_data,
+            }, status=status.HTTP_200_OK)
+
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+
+        set_cached_data(cache_key, serializer.data)
+        print("🧠 Cached categories for 30 days")
 
         return Response({
             "status": "success",
             "message": "ok",
-            "category": category_serializer.data,
-        }, status=status.HTTP_200_OK)        
+            "category": serializer.data,
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({
             "status": "error",
             "message": str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
-
-
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
 @permission_classes([])
 @authentication_classes([])
+@throttle_classes([])
 def get_product_via_category(request):
+    query = request.query_params.get("category_name")
+    if not query:
+        return Response({
+            "status": "error",
+            "message": "Category name wasn't passed. Please check and try again."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    cache_key = category_cache_key(query)
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        return Response({
+            "status": "success",
+            "message": "ok (from cache)",
+            "product": cached_data,
+        }, status=status.HTTP_200_OK)
 
     try:
+        category = Category.objects.filter(name__iexact=query).first()  # case-insensitive match
+        if not category:
+            return Response({
+                "status": "error",
+                "message": f"Category '{query}' not found."
+            }, status=status.HTTP_404_NOT_FOUND)
 
-        category = Category.objects.filter(name=request.query_params.get("category_name"))
+        products = Product.objects.filter(category=category).select_related("category").prefetch_related("images").order_by("-created_at")
+        serializer = ProductSerializer(products, many=True)
 
-        product = Product.objects.filter(category=category)
-
-
-        product_serializer = ProductSerializer(product, many=True)
+        # Cache for 30 days
+        set_cached_data(cache_key, serializer.data, timeout=60 * 60 * 24 * 30)
 
         return Response({
             "status": "success",
             "message": "ok",
-            "product": product_serializer.data,
-        }, status=status.HTTP_200_OK)        
+            "product": serializer.data,
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({
             "status": "error",
             "message": str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
-    
-
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsStaffUser, ])
@@ -270,7 +339,7 @@ def create_product(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsStaffUser, ])
+@permission_classes([IsStaffUser])
 @parser_classes([MultiPartParser, FormParser])
 def edit_product(request, product_id):
     category = request.data.get('category')
@@ -348,7 +417,6 @@ def delete_product(request):
                 "status":"error",
                 "message":"Product Id is required"
             }, status=status.HTTP_400_BAD_REQUEST)
-
 
         try:
 

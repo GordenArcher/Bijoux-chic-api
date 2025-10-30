@@ -14,6 +14,7 @@ from Orders.models import Coupon, PaymentTransaction, Order
 from django.utils import timezone
 from .serializers import CouponSerializer
 from utils.cookies.setCookies import set_jwt_cookies
+from utils.cache.cache import set_cached_data, get_cached_data
 
 # Create your views here.
 
@@ -256,24 +257,34 @@ def active_alerts(request):
 
 
 
+COUPONS_CACHE_KEY = "all_coupons_admin"
+
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def get_coupons(request):
     try:
+        cached_data = get_cached_data(COUPONS_CACHE_KEY)
+        if cached_data:
+            return Response({
+                "status": "success",
+                "message": "ok (from cache)",
+                "coupons": cached_data
+            }, status=status.HTTP_200_OK)
 
-        all_coupon = Coupon.objects.all()
+        all_coupons = Coupon.objects.all().order_by('-created_at')
+        serializer = CouponSerializer(all_coupons, many=True)
 
-        coupon_serializer = CouponSerializer(all_coupon, many=True)
+        set_cached_data(COUPONS_CACHE_KEY, serializer.data)
+        print("🧠 Cached all coupons for admin")
 
         return Response({
-            "status":"success",
-            "message":"ok",
-            "coupons": coupon_serializer.data
+            "status": "success",
+            "message": "ok",
+            "coupons": serializer.data
         }, status=status.HTTP_200_OK)
-
 
     except Exception as e:
         return Response({
             "status": "error",
             "message": f"An error occurred: {str(e)}"
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

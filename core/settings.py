@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'users',
     'rest_framework',
     'rest_framework_simplejwt',
-    'store',
+    'store.apps.StoreConfig',
     'Orders',
     'admin_panel'
 ]
@@ -94,6 +94,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://bijoux-chic.vercel.app",
     "https://admin-bijoux-chic.vercel.app",
 ]
+
+CACHE_TTL = 60 * 60 * 24 * 30
 
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
@@ -155,6 +157,14 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  
+    }
+}
+
 
 
 # Password validation

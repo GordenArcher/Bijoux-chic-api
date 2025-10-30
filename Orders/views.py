@@ -17,6 +17,8 @@ from django.utils.timezone import timedelta
 from django.db import transaction
 from admin_panel.permissions import IsStaffUser
 from .utils import generate_coupon_code
+from utils.cache.cache import get_cached_data, set_cached_data
+from utils.cache.user_orders_cache_key import user_orders_cache_key
 # Create your views here.
 
 
@@ -178,7 +180,7 @@ def checkout(request):
 
             return Response({
                 "status": "success",
-                "message": "Order created. Redirect to Paystack to complete purchase.",
+                "message": "Order created. Redirecting to Paystack to complete purchase.",
                 "order_id": order.id,
                 "reference": reference,
                 "payment_link": paystack_data["data"]["authorization_url"]
@@ -392,56 +394,75 @@ def get_order_by_reference(request, reference):
 @permission_classes([IsAuthenticated])
 def get_user_orders(request):
     try:
+        account_user = UserAccount.objects.get(user=request.user)
+    except UserAccount.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User account not found."
+        }, status=status.HTTP_404_NOT_FOUND)
 
-        try:
+    cache_key = user_orders_cache_key(account_user.id)
+    cached_data = get_cached_data(cache_key)
 
-            account_user = UserAccount.objects.get(user=request.user)
-        except UserAccount.DoesNotExist:
-            return Response({
-                "status": "error",
-                "message": "User account not found."
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        orders = Order.objects.filter(user=account_user).order_by('-created_at')
+    if cached_data:
+        return Response({
+            "status": "success",
+            "message": "ok",
+            "orders": cached_data
+        }, status=status.HTTP_200_OK)
 
-        orders_serializer = OrderSerializer(orders, many=True)
+    try:
+        orders = Order.objects.filter(user=account_user).select_related("user", "products").order_by('-created_at')
+        serializer = OrderSerializer(orders, many=True)
+
+        set_cached_data(cache_key, serializer.data)
 
         return Response({
-            "status":"success",
-            "message":"ok",
-            "orders": orders_serializer.data
+            "status": "success",
+            "message": "ok",
+            "orders": serializer.data
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({
-            "status":"error",
-            "message":f"{e}"
+            "status": "error",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 
 
+
+STAFF_ORDERS_CACHE_KEY = "all_orders_admin"
 
 @api_view(["GET"])
 @permission_classes([IsStaffUser])
 def get_all_orders(request):
     try:
+        cached_data = get_cached_data(STAFF_ORDERS_CACHE_KEY)
+        if cached_data:
+            return Response({
+                "status": "success",
+                "message": "ok (from cache)",
+                "orders": cached_data
+            }, status=status.HTTP_200_OK)
 
-        orders = Order.objects.all().order_by('-created_at')
+        orders = Order.objects.select_related("user", "products").all().order_by('-created_at')
+        serializer = OrderSerializer(orders, many=True)
 
-        orders_serializer = OrderSerializer(orders, many=True)
+        # Cache for 30 days
+        set_cached_data(STAFF_ORDERS_CACHE_KEY, serializer.data, timeout=60 * 60 * 24 * 30)
+        print("🧠 Cached all orders for staff")
 
         return Response({
-            "status":"success",
-            "message":"ok",
-            "orders": orders_serializer.data
+            "status": "success",
+            "message": "ok",
+            "orders": serializer.data
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({
-            "status":"error",
-            "message":f"{e}"
+            "status": "error",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 @api_view(["POST"])

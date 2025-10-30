@@ -1,4 +1,7 @@
 from django.core.cache import cache
+from django.conf import settings
+
+CACHE_TTL = getattr(settings, "CACHE_TTL", 60 * 60 * 24 * 30) 
 
 def get_cached_data(key):
     """
@@ -9,7 +12,7 @@ def get_cached_data(key):
     return cache.get(key)
 
 
-def set_cached_data(key, data, timeout):
+def set_cached_data(key, data, timeout=CACHE_TTL):
     """
         Store data in cache for a specific duration (in seconds).
     """
