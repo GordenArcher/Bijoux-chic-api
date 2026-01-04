@@ -42,7 +42,7 @@ def get_products(request):
 
         # Cache result for a month
         set_cached_data(cache_key, serializer.data)
-        print("🧠 Cached public products for 30 days")
+        print(" Cached public products for 30 days")
 
         return Response({
             "status": "success",
@@ -224,7 +224,7 @@ def get_categories(request):
         serializer = CategorySerializer(categories, many=True)
 
         set_cached_data(cache_key, serializer.data)
-        print("🧠 Cached categories for 30 days")
+        print(" Cached categories for 30 days")
 
         return Response({
             "status": "success",
@@ -285,6 +285,7 @@ def get_product_via_category(request):
             "status": "error",
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['POST'])
 @permission_classes([IsStaffUser, ])

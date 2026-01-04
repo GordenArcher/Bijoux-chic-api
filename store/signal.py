@@ -14,7 +14,7 @@ def clear_product_cache(sender, instance, **kwargs):
 
         for key in keys_to_clear:
             cache.delete(key)
-            print(f"🧹 Cache cleared for {key}")
+            print(f"Cache cleared for {key}")
 
     except Exception as e:
-        print(f"⚠️ Error clearing cache: {e}")
+        print(f"Error clearing cache: {e}")

@@ -10,12 +10,13 @@ __pycache__/
 
 *.sqlite3
 *.db
+dump.rdb
+*.rdb
 
 **/migrations/
 !**/migrations/__init__.py
 
 .env
-.env.*
 
 secrets.json
 
@@ -47,3 +48,4 @@ dmypy.json
 *.swp
 
 .DS_Store
+

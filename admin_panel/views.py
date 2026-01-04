@@ -20,7 +20,6 @@ from utils.cache.cache import set_cached_data, get_cached_data
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@authentication_classes([])
 def login(request):
     email = request.data.get("email")
     password = request.data.get("password")
