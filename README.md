@@ -48,7 +48,7 @@ pip install -r requirements.txt
 export SECRET_KEY='your-secret-key'
 export DEBUG=True
 export DATABASE_URL='your-database-url'
-export STRIPE_API_KEY='your-stripe-key'  # if using Stripe
+export PAYSTACK_SECRET_KEY='your-paystack-key' 
 ```
 
 5. **Run migrations**
